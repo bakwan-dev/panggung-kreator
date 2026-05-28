@@ -1,11 +1,36 @@
-import React from 'react';
-import { AuthButton } from './AuthButton';
+"use client";
+import { cn } from "@/lib/utils";
+import { signInWithGoogle } from "@/lib/actions/auth-actions";
+import { Loader2 } from "lucide-react";
 
-export function GoogleButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+interface GoogleButtonProps {
+  isLoading: boolean;
+  onClick: () => void;
+  className?: string;
+  disabled: boolean;
+}
+
+export function GoogleButton({
+  isLoading,
+  onClick,
+  className,
+  disabled,
+}: GoogleButtonProps) {
+  const handleClick = async () => {
+    onClick();
+  };
   return (
-    <AuthButton
-      label="Login with Google"
-      icon={
+    <button
+      onClick={handleClick}
+      disabled={isLoading || disabled}
+      className={cn(
+        "w-full p-3 bg-red-500 text-white rounded-md hover:bg-red-400 transition duration-200 flex items-center justify-center gap-2",
+        className
+      )}
+    >
+      {isLoading ? (
+        <Loader2 className="w-5 h-5 animate-spin" />
+      ) : (
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path
             fill="#4285F4"
@@ -24,8 +49,8 @@ export function GoogleButton(props: React.ButtonHTMLAttributes<HTMLButtonElement
             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.77 1 4 3.64 2.18 7.17l3.69 2.82C6.73 7.42 9.15 5.38 12 5.38z"
           />
         </svg>
-      }
-      {...props}
-    />
+      )}
+      <span>{isLoading ? "Signing in..." : "Login with Google"}</span>
+    </button>
   );
 }
