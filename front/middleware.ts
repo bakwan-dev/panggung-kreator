@@ -54,7 +54,7 @@ export async function middleware(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
 
     const publicRoutes = ["/login", "/auth/callback"];
-    const isPublic = publicRoutes.some((route) => pathname.startsWith(route));
+    const isPublic = publicRoutes.some((route) => pathname.startsWith(route)) || pathname === "/";
 
     if (!session) {
         if (!isPublic) {
@@ -77,13 +77,13 @@ export async function middleware(request: NextRequest) {
 
     const hasOnboarded = !!member;
 
-    if (pathname === "/" || pathname === "/login") {
+    if (pathname === "/login") {
         return NextResponse.redirect(
             new URL(hasOnboarded ? "/dashboard" : "/onboarding", request.url)
         );
     }
 
-    if (!hasOnboarded && pathname !== "/onboarding") {
+    if (!hasOnboarded && pathname !== "/onboarding" && pathname !== "/") {
         return NextResponse.redirect(new URL("/onboarding", request.url));
     }
 
