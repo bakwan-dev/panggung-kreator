@@ -7,7 +7,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function run() {
   const email = 'panggungkreator.idn@gmail.com';
-  const password = 'TemanSepanggung2026';
+  const password = 'admin123321';
   const username = 'adminpangkreas';
 
   console.log("Registering user in Auth...");
