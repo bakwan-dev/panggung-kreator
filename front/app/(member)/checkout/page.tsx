@@ -96,8 +96,8 @@ export default function CheckoutPage() {
       isValid = false;
     } else {
       const cleanWa = formData.whatsapp.replace(/\D/g, '');
-      if (cleanWa.length < 10 || cleanWa.length > 13) {
-        newErrors.whatsapp = 'Nomor WhatsApp harus terdiri dari 10-13 digit angka';
+      if (cleanWa.length < 10 || cleanWa.length > 15) {
+        newErrors.whatsapp = 'Nomor WhatsApp harus terdiri dari 10-15 digit angka';
         isValid = false;
       }
     }
@@ -137,25 +137,8 @@ export default function CheckoutPage() {
   const handleWhatsappChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
     
-    // 1. Ambil hanya digit angka saja
-    let digits = value.replace(/\D/g, '');
-    
-    // 2. Otomatis diawali angka 0 jika digit pertama bukan 0
-    if (digits.length > 0 && digits[0] !== '0') {
-      digits = '0' + digits;
-    }
-    
-    // 3. Batasi maksimal 13 digit angka
-    if (digits.length > 13) {
-      digits = digits.slice(0, 13);
-    }
-    
-    // 4. Format dengan '-' setiap 4 digit angka (misal: 0811-1115-6736)
-    const parts = [];
-    for (let i = 0; i < digits.length; i += 4) {
-      parts.push(digits.slice(i, i + 4));
-    }
-    const formatted = parts.join('-');
+    // Hanya izinkan angka dan karakter '+' (opsional) di awal
+    const formatted = value.replace(/(?!^\+)[^\d]/g, '');
 
     setFormData(prev => ({ ...prev, whatsapp: formatted }));
     if (errors.whatsapp) {
@@ -408,7 +391,7 @@ export default function CheckoutPage() {
                         name="whatsapp"
                         value={formData.whatsapp}
                         onChange={handleWhatsappChange}
-                        placeholder="0812-xxxx-xxxx"
+                        placeholder="0812xxxxxxxx atau +62812xxxxxxxx"
                         className={`w-full bg-white dark:bg-[#0a0a0a] border ${errors.whatsapp ? 'border-[#bc151b] focus:ring-[#bc151b]' : 'border-zinc-200 dark:border-white/10 focus:border-[#bc151b] focus:ring-[#bc151b]'
                           } rounded-lg px-4 py-3 text-zinc-900 dark:text-white focus:outline-none focus:ring-1 transition-all`}
                         required

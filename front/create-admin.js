@@ -1,54 +1,95 @@
 const { createClient } = require('@supabase/supabase-js');
+const { loadEnvConfig } = require('@next/env');
 
-const supabaseUrl = "https://cobxfeidsefebkniiudr.supabase.co";
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvYnhmZWlkc2VmZWJrbmlpdWRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNzU5MzYsImV4cCI6MjA5NDY1MTkzNn0.cqH5bURh9Hy9JnPtdiN3ZXdEp4nXrE7NqLg7P_RzM9Y";
+// Load environment variables dari file .env
+loadEnvConfig(process.cwd());
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
+const passwordAdmin = process.env.PASSWORD_ADMIN;
+
+if (!supabaseUrl || !supabaseServiceRoleKey || !passwordAdmin) {
+  console.error("Error: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY, atau PASSWORD_ADMIN tidak ditemukan di .env");
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
 
 async function run() {
   const email = 'panggungkreator.idn@gmail.com';
-  const password = 'admin123321';
+  const password = passwordAdmin;
   const username = 'adminpangkreas';
 
-  console.log("Registering user in Auth...");
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  console.log("Checking if admin already exists in members table...");
+
+  // Cari di tabel members berdasarkan email
+  const { data: existingMember, error: findError } = await supabase
+    .from('members')
+    .select('id')
+    .eq('email', email)
+    .maybeSingle();
+
+  if (findError) {
+    console.error("Error searching for existing admin:", findError);
+    return;
+  }
+
+  if (existingMember) {
+    console.log(`Admin found with ID: ${existingMember.id}. Deleting to recreate fresh...`);
+
+    // Hapus user di Supabase Auth (akan meng-cascade delete tabel members juga)
+    const { error: deleteError } = await supabase.auth.admin.deleteUser(existingMember.id);
+    if (deleteError) {
+      console.error("Failed to delete existing admin:", deleteError);
+      return;
+    }
+    console.log("Existing admin deleted successfully.");
+  }
+
+  console.log("Creating a new admin account...");
+
+  // Buat user baru di Supabase Auth menggunakan Admin API
+  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
     email,
     password,
+    email_confirm: true
   });
 
   if (authError) {
-    console.error("Auth error:", authError);
+    console.error("Failed to create admin in Auth:", authError);
     return;
   }
 
-  const user = authData.user;
-  if (!user) {
-    console.error("No user returned");
-    return;
-  }
+  const userId = authData.user.id;
+  console.log("User created in Auth with ID:", userId);
 
-  console.log("User created in Auth with ID:", user.id);
-  console.log("Inserting profile into members table...");
-
+  // Insert profil ke tabel members (termasuk kolom not-null instagram_username dan occupation)
   const { error: dbError } = await supabase
     .from('members')
     .insert({
-      id: user.id,
+      id: userId,
       full_name: 'Admin Pangkreas',
       stage_name: 'Admin Pangkreas',
       whatsapp_number: '089999999999',
       email: email,
       username: username,
+      instagram_username: 'adminpangkreas',
+      occupation: 'Admin',
       payment_status: 'paid',
       role: 'admin'
     });
 
   if (dbError) {
-    console.error("Database error:", dbError);
+    console.error("Failed to insert profile in members table:", dbError);
     return;
   }
 
-  console.log("Admin account created successfully!");
+  console.log("Admin account set up successfully!");
 }
 
 run();

@@ -148,12 +148,12 @@ export async function signInWithPasswordAction(emailOrUsername: string, password
         // Cari email di tabel members berdasarkan username menggunakan RPC (untuk bypass RLS)
         const { data: memberEmail, error: searchError } = await supabase
             .rpc("get_email_by_username", { p_username: loginEmail });
-            
+
         if (searchError) {
             console.error("Error searching username in database:", searchError);
             return { success: false, error: "Gagal mencari username di database" };
         }
-        
+
         if (memberEmail) {
             loginEmail = memberEmail;
         } else {
@@ -179,7 +179,7 @@ export async function signInWithPasswordAction(emailOrUsername: string, password
             .select("role")
             .eq("id", authData.user.id)
             .single();
-            
+
         if (member && member.role === "admin") {
             isAdmin = true;
         }

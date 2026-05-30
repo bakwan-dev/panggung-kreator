@@ -94,7 +94,6 @@ export default function LoginPage() {
                   <input
                     type="checkbox"
                     className="w-3.5 h-3.5 rounded text-[#bc151b] border-zinc-300 focus:ring-[#bc151b]"
-                    defaultChecked
                   />
                   <span>Remember me</span>
                 </label>
