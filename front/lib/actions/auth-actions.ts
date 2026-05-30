@@ -116,3 +116,74 @@ export async function signInWithGithub() {
 
     return redirect(data.url);
 }
+
+export async function signInWithPasswordAction(emailOrUsername: string, password: string) {
+    if (!emailOrUsername || !password) {
+        return { success: false, error: "Email/Username dan Password wajib diisi" };
+    }
+
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                get(name: string) {
+                    return cookieStore.get(name)?.value;
+                },
+                set(name: string, value: string, options: CookieOptions) {
+                    cookieStore.set({ name, value, ...options });
+                },
+                remove(name: string, options: CookieOptions) {
+                    cookieStore.set({ name, value: "", ...options });
+                },
+            },
+        }
+    );
+
+    let loginEmail = emailOrUsername.trim();
+
+    // Jika input tidak mengandung '@', kita anggap itu adalah username
+    if (!loginEmail.includes("@")) {
+        // Cari email di tabel members berdasarkan username menggunakan RPC (untuk bypass RLS)
+        const { data: memberEmail, error: searchError } = await supabase
+            .rpc("get_email_by_username", { p_username: loginEmail });
+            
+        if (searchError) {
+            console.error("Error searching username in database:", searchError);
+            return { success: false, error: "Gagal mencari username di database" };
+        }
+        
+        if (memberEmail) {
+            loginEmail = memberEmail;
+        } else {
+            return { success: false, error: "Username tidak terdaftar sebagai member" };
+        }
+    }
+
+    // Jalankan autentikasi Supabase
+    const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: password,
+    });
+
+    if (error) {
+        console.error("Login error:", error);
+        return { success: false, error: "Password salah atau kredensial tidak valid" };
+    }
+
+    let isAdmin = false;
+    if (authData?.user) {
+        const { data: member } = await supabase
+            .from("members")
+            .select("role")
+            .eq("id", authData.user.id)
+            .single();
+            
+        if (member && member.role === "admin") {
+            isAdmin = true;
+        }
+    }
+
+    return { success: true, isAdmin };
+}

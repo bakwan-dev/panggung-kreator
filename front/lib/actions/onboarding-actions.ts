@@ -122,3 +122,146 @@ export async function submitOnboardingData(payload: OnboardingPayload) {
     return { success: false, error: "Terjadi kesalahan internal server." };
   }
 }
+
+type CheckoutPayload = {
+  fullName: string;
+  stageName: string;
+  instagram: string;
+  tiktok: string;
+  whatsapp: string;
+  email: string;
+  profession: string;
+};
+
+export async function registerMemberAction(payload: CheckoutPayload) {
+  try {
+    const cookieStore = await cookies();
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options });
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.set({ name, value: "", ...options });
+          },
+        },
+      }
+    );
+
+    // 1. Generate Username & Password
+    const baseName = (payload.stageName || payload.fullName || "member")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    const randomSuffix = Math.floor(100 + Math.random() * 900);
+    const generatedUsername = `${baseName}${randomSuffix}`;
+    const generatedPassword = `Panggung${Math.floor(1000 + Math.random() * 9000)}!`;
+
+    // 2. Sign Up User in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: payload.email.trim(),
+      password: generatedPassword,
+    });
+
+    if (authError) {
+      console.error("Auth signUp error:", authError);
+      return { success: false, error: authError.message };
+    }
+
+    const user = authData?.user;
+    if (!user) {
+      return { success: false, error: "Gagal membuat akun autentikasi." };
+    }
+
+    // 3. Save Member Details to Database
+    const { error: dbError } = await supabase
+      .from("members")
+      .insert({
+        id: user.id,
+        full_name: payload.fullName,
+        stage_name: payload.stageName,
+        whatsapp_number: payload.whatsapp,
+        email: payload.email.trim(),
+        instagram_username: payload.instagram,
+        tiktok_username: payload.tiktok,
+        occupation: payload.profession,
+        username: generatedUsername,
+        payment_status: 'pending',
+        role: 'member'
+      });
+
+    if (dbError) {
+      console.error("Database insert error:", dbError);
+      return { success: false, error: dbError.message };
+    }
+
+    return {
+      success: true,
+      username: generatedUsername,
+      password: generatedPassword
+    };
+
+  } catch (error: any) {
+    console.error("Registration action error:", error);
+    return { success: false, error: error.message || "Terjadi kesalahan internal server." };
+  }
+}
+
+export async function verifyMemberPaymentAction(memberId: string) {
+  try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options });
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.set({ name, value: "", ...options });
+          },
+        },
+      }
+    );
+
+    // Cek apakah user yang memanggil adalah admin
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      return { success: false, error: "Tidak diotorisasi" };
+    }
+
+    const { data: adminMember } = await supabase
+      .from("members")
+      .select("role")
+      .eq("id", session.user.id)
+      .single();
+
+    if (!adminMember || adminMember.role !== "admin") {
+      return { success: false, error: "Hanya admin yang diperbolehkan memverifikasi pembayaran." };
+    }
+
+    // Update status
+    const { error } = await supabase
+      .from("members")
+      .update({ payment_status: "paid" })
+      .eq("id", memberId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Terjadi kesalahan internal." };
+  }
+}

@@ -53,7 +53,7 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getSession();
     const pathname = request.nextUrl.pathname;
 
-    const publicRoutes = ["/login", "/auth/callback"];
+    const publicRoutes = ["/login", "/auth/callback", "/checkout"];
     const isPublic = publicRoutes.some((route) => pathname.startsWith(route)) || pathname === "/";
 
     if (!session) {
@@ -68,26 +68,43 @@ export async function middleware(request: NextRequest) {
         return response;
     }
 
-    // Cek apakah user sudah mengisi data onboarding
+    // Cek apakah user sudah mengisi data onboarding dan statusnya lunas / admin
     const { data: member } = await supabase
         .from("members")
-        .select("id")
+        .select("id, payment_status, role")
         .eq("id", session.user.id)
         .single();
 
-    const hasOnboarded = !!member;
+    const hasOnboarded = !!member && (member.payment_status === "paid" || member.role === "admin");
+    const isAdmin = !!member && member.role === "admin";
+
+    // Proteksi Rute Admin
+    if (pathname.startsWith("/admin")) {
+        if (!isAdmin) {
+            return NextResponse.redirect(
+                new URL(hasOnboarded ? "/dashboard" : "/checkout", request.url)
+            );
+        }
+        return response;
+    }
+
+    // Jika admin mengakses halaman member/login, langsung arahkan ke panel admin
+    if (isAdmin && (pathname === "/login" || pathname === "/dashboard" || pathname === "/checkout")) {
+        return NextResponse.redirect(new URL("/admin", request.url));
+    }
 
     if (pathname === "/login") {
-        return NextResponse.redirect(
-            new URL(hasOnboarded ? "/dashboard" : "/onboarding", request.url)
-        );
+        if (hasOnboarded) {
+            return NextResponse.redirect(new URL("/dashboard", request.url));
+        }
+        return response;
     }
 
-    if (!hasOnboarded && pathname !== "/onboarding" && pathname !== "/") {
-        return NextResponse.redirect(new URL("/onboarding", request.url));
+    if (!hasOnboarded && pathname !== "/checkout" && pathname !== "/") {
+        return NextResponse.redirect(new URL("/checkout", request.url));
     }
 
-    if (hasOnboarded && pathname === "/onboarding") {
+    if (hasOnboarded && pathname === "/checkout") {
         return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
