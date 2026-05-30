@@ -163,15 +163,33 @@ export async function registerMemberAction(payload: CheckoutPayload) {
     const generatedUsername = `${baseName}${randomSuffix}`;
     const generatedPassword = `Panggung${Math.floor(1000 + Math.random() * 9000)}!`;
 
-    // 2. Sign Up User in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    // Initialize Supabase Admin client with Service Role Key to bypass rate limits
+    const supabaseAdmin = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        cookies: {
+          get(name: string) { return ""; },
+          set(name: string, value: string, options: any) {},
+          remove(name: string, options: any) {},
+        },
+      }
+    );
+
+    // 2. Sign Up User using Supabase Auth Admin API (bypasses rate limit and email verification SMTP)
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: payload.email.trim(),
       password: generatedPassword,
+      email_confirm: true, // auto-confirm the email
     });
 
     if (authError) {
       console.error("Auth signUp error:", authError);
-      return { success: false, error: authError.message };
+      let friendlyError = authError.message;
+      if (authError.message.includes("rate limit exceeded")) {
+        friendlyError = "Batas pendaftaran email terlampaui (rate limit Supabase). Silakan coba lagi nanti atau hubungi Admin.";
+      }
+      return { success: false, error: friendlyError };
     }
 
     const user = authData?.user;
@@ -179,8 +197,8 @@ export async function registerMemberAction(payload: CheckoutPayload) {
       return { success: false, error: "Gagal membuat akun autentikasi." };
     }
 
-    // 3. Save Member Details to Database
-    const { error: dbError } = await supabase
+    // 3. Save Member Details to Database (using admin client to bypass RLS)
+    const { error: dbError } = await supabaseAdmin
       .from("members")
       .insert({
         id: user.id,
@@ -192,6 +210,7 @@ export async function registerMemberAction(payload: CheckoutPayload) {
         tiktok_username: payload.tiktok,
         occupation: payload.profession,
         username: generatedUsername,
+        temporary_password: generatedPassword,
         payment_status: 'pending',
         role: 'member'
       });
@@ -199,6 +218,16 @@ export async function registerMemberAction(payload: CheckoutPayload) {
     if (dbError) {
       console.error("Database insert error:", dbError);
       return { success: false, error: dbError.message };
+    }
+
+    // 4. Sign in the user on the cookie-based client so their session is persisted on the client browser
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: payload.email.trim(),
+      password: generatedPassword,
+    });
+
+    if (signInError) {
+      console.error("Sign in after registration failed:", signInError);
     }
 
     return {

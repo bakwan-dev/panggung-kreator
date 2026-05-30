@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Header from '@/components/ui/Header';
 import { signout } from '@/lib/actions/auth-actions';
 import { createClient } from '@/lib/supabase/client';
-import { registerMemberAction } from '@/lib/actions/onboarding-actions';
+import { registerMemberAction } from '@/lib/actions/checkout-actions';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -268,22 +268,13 @@ export default function CheckoutPage() {
                   </h2>
                 </div>
 
-                <div className="bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-white/5 rounded-xl p-5 space-y-4 transition-colors duration-300">
-                  <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-300 tracking-wider">AKUN LOGIN ANDA</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-medium">
-                    <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-lg border border-zinc-200 dark:border-white/5 shadow-xs">
-                      <span className="text-zinc-400 dark:text-zinc-500 block mb-1 text-[10px] uppercase">Username</span>
-                      <span className="text-zinc-900 dark:text-white text-sm font-bold tracking-wide select-all">{activeUsername}</span>
-                    </div>
-                    <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-lg border border-zinc-200 dark:border-white/5 shadow-xs">
-                      <span className="text-zinc-400 dark:text-zinc-500 block mb-1 text-[10px] uppercase">Sandi Sementara</span>
-                      <span className="text-zinc-900 dark:text-white text-sm font-bold tracking-wide select-all">
-                        {activePassword ? activePassword : "(Gunakan sandi yang telah Anda catat sebelumnya)"}
-                      </span>
-                    </div>
-                  </div>
+                <div className="bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-white/5 rounded-xl p-5 space-y-3 transition-colors duration-300">
+                  <h3 className="text-xs font-bold text-zinc-500 dark:text-zinc-300 tracking-wider">AKUN LOGIN SEDANG DISIAPKAN</h3>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
+                    Kredensial login Anda (Username & Password) sedang disiapkan dan akan dikirimkan langsung ke email Anda setelah pembayaran Anda diverifikasi dan dikonfirmasi oleh Admin.
+                  </p>
                   <p className="text-[11px] text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">
-                    * <strong className="text-[#bc151b]">PENTING:</strong> Silakan catat dan simpan informasi Akun Login di atas. Akun ini akan digunakan untuk login ke Dashboard setelah pembayaran diverifikasi oleh admin.
+                    * <strong className="text-[#bc151b]">PENTING:</strong> Pastikan Anda mengirimkan bukti transfer pembayaran ke WhatsApp agar Admin dapat memverifikasi dan mengaktifkan akun Anda.
                   </p>
                 </div>
 

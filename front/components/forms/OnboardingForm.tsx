@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { PillSelect } from "@/components/ui/PillSelect";
 import { DatePicker } from "@/components/ui/DatePicker";
-import { submitOnboardingData } from "@/lib/actions/onboarding-actions";
+import { submitOnboardingData } from "@/lib/actions/checkout-actions";
 
 const OCCUPATION_OPTIONS = [
   { label: "Mahasiswa / Pelajar", value: "Mahasiswa / Pelajar", icon: <GraduationCap size={18} /> },

@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { verifyMemberPaymentAction } from "@/lib/actions/onboarding-actions";
+import { verifyMemberPaymentAction } from "@/lib/actions/checkout-actions";
 
 type Member = {
   id: string;
@@ -14,6 +14,7 @@ type Member = {
   tiktok_username: string;
   occupation: string;
   username: string;
+  temporary_password?: string;
   payment_status: string;
   created_at: string;
 };
@@ -280,6 +281,12 @@ export default function AdminClient({ initialMembers }: AdminClientProps) {
                         <span className="text-zinc-500">User:</span>
                         <span className="text-zinc-700 dark:text-zinc-300 font-mono font-medium">{member.username || "-"}</span>
                       </div>
+                      {member.temporary_password && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-zinc-500">Pass:</span>
+                          <span className="text-zinc-700 dark:text-zinc-300 font-mono font-medium select-all">{member.temporary_password}</span>
+                        </div>
+                      )}
                       <div className="text-[11px] text-zinc-500 font-medium">{member.email || "-"}</div>
                     </td>
 
