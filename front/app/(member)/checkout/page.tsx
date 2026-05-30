@@ -136,9 +136,28 @@ export default function CheckoutPage() {
 
   const handleWhatsappChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
-    // Hanya izinkan angka dan strip
-    const cleanValue = value.replace(/[^0-9-]/g, '');
-    setFormData(prev => ({ ...prev, whatsapp: cleanValue }));
+    
+    // 1. Ambil hanya digit angka saja
+    let digits = value.replace(/\D/g, '');
+    
+    // 2. Otomatis diawali angka 0 jika digit pertama bukan 0
+    if (digits.length > 0 && digits[0] !== '0') {
+      digits = '0' + digits;
+    }
+    
+    // 3. Batasi maksimal 13 digit angka
+    if (digits.length > 13) {
+      digits = digits.slice(0, 13);
+    }
+    
+    // 4. Format dengan '-' setiap 4 digit angka (misal: 0811-1115-6736)
+    const parts = [];
+    for (let i = 0; i < digits.length; i += 4) {
+      parts.push(digits.slice(i, i + 4));
+    }
+    const formatted = parts.join('-');
+
+    setFormData(prev => ({ ...prev, whatsapp: formatted }));
     if (errors.whatsapp) {
       setErrors(prev => ({ ...prev, whatsapp: '' }));
     }
